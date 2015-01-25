@@ -141,22 +141,37 @@ def create_origin_coord(point1, point2):
 #    s1.CoincidentConstraint(entity1=v.findAt((-1.801388, -3.0)), entity2=g.findAt((
 #        0.0, -3.0)), addUndoState=False)
 
-def bifurcate(point1, point2):
+def bifurcate(point1, point2, ratio = 0.5):
 
     coord = (0.0, 0.0)
+    pp_1 = point1
+    pp_2 = point2
+
+    if (point1[0] > point2[0]):
+        pp_1 = point2;
+        pp_2 = point1;
+    elif ((point1[0] == point2[0]) and (point1[1] > point2[1])):
+        pp_1 = point2;
+        pp_2 = point1;
+
+
     if (point1[1] == point2[1]):
-        coord = (0.5*point1[0]+ 0.5*point2[0], point1[1]);
+        coord = (ratio*pp_1[0]+ (1-ratio)*pp_2[0], pp_1[1]);
 
     elif (point1[0] == point2[0]):
-        coord = (point1[0], 0.5*point1[1]+ 0.5*point2[1]);
+        coord = (pp_1[0], ratio*pp_1[1]+ (1-ratio)*pp_2[1]);
 
     else:
         print "There is an error in the points, pls check"
 
+    print "~~~~~~~~~~~~~~~~~~~~~~"
+    print "The coordinates are given as :"
+    print coord, ratio
+    print "~~~~~~~~~~~~~~~~~~~~~~"
     return coord
 
 
-def bifurcate_edges(p, s1):
+def bifurcate_edges(p, s1, face_coord):
     edges = p.edges
 
     points = []
@@ -172,7 +187,7 @@ def bifurcate_edges(p, s1):
         v_2 = (p.vertices[vertex_2])
 
         if (v_1.pointOn[0][1] == v_2.pointOn[0][1]):
-            coord = bifurcate(v_1.pointOn[0], v_2.pointOn[0])
+            coord = bifurcate(v_1.pointOn[0], v_2.pointOn[0], 0.3)
             print " The coord, vertex 1 and vertex 2  is "
             print (coord, v_1, v_2)
             points.append(coord)
@@ -206,7 +221,13 @@ def bifurcate_edges(p, s1):
     p.projectReferencesOntoSketch(sketch=s1, filter=COPLANAR_EDGES)
     p = mdb.models['Model-1'].parts['Part-1']
     f = p.faces
-    pickedFaces = f.findAt(((14.0, 8.0, 0.0), ))
+    print "The faces available are the following"
+    print f[0]
+    #pickedFaces = f.findAt(((14.0, 8.0, 0.0), ))
+    print " The face coordinate is given as"
+    print face_coord
+
+    pickedFaces = f.findAt((face_coord, ))
     e1, d2 = p.edges, p.datums
     p.PartitionFaceBySketch(faces=pickedFaces, sketch=s1)
     s1.unsetPrimaryObject()
@@ -259,7 +280,7 @@ p.projectReferencesOntoSketch(sketch=s1, filter=COPLANAR_EDGES)
 print "The vertices are the following ~~~~~~~"
 
 
-bifurcate_edges(p, s1)
+bifurcate_edges(p, s1, face_coord)
 
 #p = mdb.models['Model-1'].parts['Part-1']
 
