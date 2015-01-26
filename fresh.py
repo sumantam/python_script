@@ -1,7 +1,6 @@
 from abaqus import *
 from abaqusConstants import *
 from caeModules import *
-#from driverUtils import executeOnCaeStartup
 from driverUtils import *
 from pprint import *
 from operator import *
@@ -12,7 +11,7 @@ from operator import *
 
 sixsixseven = 0.6666667
 threethreethree = 0.33333
-
+G_dict_face2edges = dict()
 ############################## Functions are defined below ###############
 
 
@@ -25,8 +24,6 @@ def dump_obj(obj, level=0):
 
 
 def create_session(wid, ht):
-#    session.Viewport(name='Viewport: 1', origin=(0.0, 0.0), width=435.0,
-#    height=184.0)
     session.Viewport(name='Viewport: 1', origin=(0.0, 0.0), width=wid,
     height=ht)
     session.viewports['Viewport: 1'].makeCurrent()
@@ -52,15 +49,8 @@ def create_sketch():
     g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
     s.sketchOptions.setValues(viewStyle=AXISYM)
     s.setPrimaryObject(option=STANDALONE)
-
-    #print " Before : The values of the geometry are %s" % (g)
     s.ConstructionLine(point1=(0.0, -100.0), point2=(0.0, 100.0))
-    #print()
-    #print " After : The values of the geometry are  %s " % (str(g))
-
-    # Fixing up the origin
     s.FixedConstraint(entity=g.findAt((0.0, 0.0)))
-
 
     return s
 
@@ -98,48 +88,85 @@ def create_face_coord(point1, point2):
     ret_coord_x = 0;
     ret_coord_y = 0;
 
-    print " The first point is :"
-    print point1
-    print "The second point is :"
-    print point2
-
     dist = tuple(map(lambda x, y: abs(x - y) , point1, point2))
-    print " The value of the coordinates are ------>"
-    print (dist)
 
     ret_coord_x = (point1[0] + sixsixseven*dist[0]) if (point1[0] < point2[0]) \
         else (point1[0] - threethreethree*dist[0]);
     ret_coord_y = (point1[1] + sixsixseven*dist[1]) if (point1[1] < point2[1]) \
         else (point1[1] - threethreethree*dist[1]);
 
-    #coord2 = tuple(map(lambda x, y : y + .6666667*x, dist, point1))
-    print " The value of the coordinates are <-----"
     coord2 = (ret_coord_x, ret_coord_y, 0.0)
-    print (coord2)
 
     return coord2
 
 def create_origin_coord(point1, point2):
     coord = tuple(map(lambda x, y: x*0.5 + y*0.5 , point1, point2))
-    print "The value of the origin coordinate is "
-    print coord
     return (coord[0], coord[1], 0.0)
 
-#def create_line_with_constraint(point1, point2):
-#
-#    g = s1.geometry
-#    v = s1.vertices
-#    d = s1.dimensions
-#    c = s1.constraints
-#
-#    s1.Line(point1=point1, point2=point2)
-#    s1.VerticalConstraint(entity=g.findAt((-1.801388, 0.0)), addUndoState=False)
-#    s1.PerpendicularConstraint(entity1=g.findAt((0.0, 3.0)), entity2=g.findAt((
-#        -1.801388, 0.0)), addUndoState=False)
-#    s1.CoincidentConstraint(entity1=v.findAt((-1.801388, 3.0)), entity2=g.findAt((
-#        0.0, 3.0)), addUndoState=False)
-#    s1.CoincidentConstraint(entity1=v.findAt((-1.801388, -3.0)), entity2=g.findAt((
-#        0.0, -3.0)), addUndoState=False)
+
+def get_x(object_pointOn):
+    return pointOn[0][0]
+
+def get_y(object_pointOn):
+    return pointOn[0][1]
+
+def check_horizontal_membership(face, edges):
+    for e in edges  :
+        face_coord = face.pointOn
+        vv = e.getVertices()
+
+
+        #if (get_x(face.pointOn) )
+
+
+
+def populate_global_dict(p, points_0, points_1, pickedFaces, vertical = True):
+
+    faces = p.faces
+    edges = p.edges
+
+    for f in faces :
+
+        new_list = list()
+        print "The faces are given as "
+        print f
+
+        if (vertical == True):
+            print "In the correct point"
+
+            face_x = get_x(f.pointOn)
+            face_y = get_y(f.pointOn)
+
+            print "The face x and y are ", (face_x, face_y)
+
+            #if ()
+
+        elif (vertical != true):
+            print "Needs to be solved later"
+
+
+    for e in edges :
+        vv = e.getVertices()
+        print "The edges are given as"
+        print p.vertices[vv[0]], p.vertices[vv[1]]
+
+
+    print "The points are given as "
+    print points_0, points_1
+
+    print " <<<<<<<<<<<<<< END >>>>>>>>>>>>>>>>"
+
+
+    #A face is picked and hence all its edges
+    #will either be in one hash of the face or another
+    #hash of another face.
+    #After that remove the pickedFaces
+
+
+    #del G_dict_face2edges[pickedFaces]
+
+
+
 
 def bifurcate(point1, point2, ratio = 0.5):
 
@@ -170,15 +197,38 @@ def bifurcate(point1, point2, ratio = 0.5):
     print "~~~~~~~~~~~~~~~~~~~~~~"
     return coord
 
+#def unset_and_delete_sketch(p, s):
 
-def bifurcate_edges(p, s1, face_coord):
-    edges = p.edges
+def create_new_sketch_transform(p, face_coord, origin):
 
+    t = p.MakeSketchTransform(sketchPlane=f.findAt(coordinates= face_coord,
+    normal= normal), sketchPlaneSide=SIDE1, origin=origin)
+
+    s1 = mdb.models['Model-1'].ConstrainedSketch(name='__profile__',
+        sheetSize=100, gridSpacing=1.11, transform=t)
+
+    s1.setPrimaryObject(option=SUPERIMPOSE)
+    p = mdb.models['Model-1'].parts['Part-1']
+    p.projectReferencesOntoSketch(sketch=s1, filter=COPLANAR_EDGES)
+
+    return s1
+
+def bifurcate_edges(p, s1, face_number = 0):
+
+    edges = p.faces[face_number].getEdges()
+    face = p.faces[face_number]
+    face_edges = face.getEdges()
     points = []
 
-
     for e in edges :
-        vertices = e.getVertices()
+        ##############################################
+        #Check if the edge is in the list of vertices
+        ###############################################
+
+        if not(e in face_edges):
+            continue
+
+        vertices = p.edges[e].getVertices()
         vertex_1 = vertices[0]
         vertex_2 = vertices[1]
 
@@ -201,37 +251,44 @@ def bifurcate_edges(p, s1, face_coord):
     s1.Line(point1=points[0], point2=points[1])
     centre_point_of_line = bifurcate(points[0], points[1])
 
-    print "The value of the centre_point_line is"
-    print centre_point_of_line
-
     g = s1.geometry
-    print "The geometry is given as "
-    print g[2], g[3], g[4], g[5], g[6], g[7]
 
-#    s1.Line(point1=(-1.80138778686523, 3.0), point2=(-1.80138778686523, -3.0))
     s1.VerticalConstraint(entity=g.findAt(centre_point_of_line), addUndoState=False)
-#    s1.PerpendicularConstraint(entity1=g.findAt((0.0, points[0][1])), entity2=g.findAt((
-#        points[1][0], 0.0)), addUndoState=False)
-#    s1.CoincidentConstraint(entity1=v.findAt(points[0]), entity2=g.findAt((
-#        0.0, 3.0)), addUndoState=False)
-#    s1.CoincidentConstraint(entity1=v.findAt((-1.801388, -3.0)), entity2=g.findAt((
-#        0.0, -3.0)), addUndoState=False)
     s1.setPrimaryObject(option=SUPERIMPOSE)
     p = mdb.models['Model-1'].parts['Part-1']
     p.projectReferencesOntoSketch(sketch=s1, filter=COPLANAR_EDGES)
     p = mdb.models['Model-1'].parts['Part-1']
     f = p.faces
+
+
     print "The faces available are the following"
-    print f[0]
+    print f[face_number].pointOn
     #pickedFaces = f.findAt(((14.0, 8.0, 0.0), ))
     print " The face coordinate is given as"
-    print face_coord
+    print f[face_number].pointOn
 
-    pickedFaces = f.findAt((face_coord, ))
+    pickedFaces = f.findAt((f[face_number].pointOn[0], ))
     e1, d2 = p.edges, p.datums
     p.PartitionFaceBySketch(faces=pickedFaces, sketch=s1)
+
+    #populate_global_dict(p, points[0], points[1], pickedFaces)
     s1.unsetPrimaryObject()
     del mdb.models['Model-1'].sketches['__profile__']
+
+
+def print_faces():
+    p = mdb.models['Model-1'].parts['Part-1']
+    faces = p.faces
+
+    for f in faces:
+        print f
+
+
+
+
+
+
+
 
 ##############################################################
 #   This is the start of the main part of the code
@@ -260,58 +317,14 @@ p = create_part(s, point1, point2)
 
 f, e, d1 = p.faces, p.edges, p.datums
 face_coord = create_face_coord(point1, point2)
-#origin = create_origin_coord(point1, point2)
 origin = (0.0, 0.0, 0.0)
 
-t = p.MakeSketchTransform(sketchPlane=f.findAt(coordinates= face_coord,
-    normal= normal), sketchPlaneSide=SIDE1, origin=origin)
+s1 = create_new_sketch_transform(p, face_coord, origin)
+bifurcate_edges(p, s1)
 
-s1 = mdb.models['Model-1'].ConstrainedSketch(name='__profile__',
-        sheetSize=100, gridSpacing=1.11, transform=t)
+s2 = create_new_sketch_transform(p, face_coord, origin)
+bifurcate_edges(p, s2)
 
-#g = s1.geometry
-#v = s1.vertices
-#d = s1.dimensions
-#c = s1.constraints
+#bifurcate_edges(p, s1, )
 
-s1.setPrimaryObject(option=SUPERIMPOSE)
-p = mdb.models['Model-1'].parts['Part-1']
-p.projectReferencesOntoSketch(sketch=s1, filter=COPLANAR_EDGES)
-print "The vertices are the following ~~~~~~~"
-
-
-bifurcate_edges(p, s1, face_coord)
-
-#p = mdb.models['Model-1'].parts['Part-1']
-
-
-
-#s1.Line(point1=point1, point2=point2)
-#s1.Line(point1=(-1.80138778686523, 3.0), point2=(-1.80138778686523, -3.0))
-#s1.VerticalConstraint(entity=g.findAt((-1.801388, 0.0)), addUndoState=False)
-#s1.PerpendicularConstraint(entity1=g.findAt((0.0, 3.0)), entity2=g.findAt((
-#    -1.801388, 0.0)), addUndoState=False)
-#s1.CoincidentConstraint(entity1=v.findAt((-1.801388, 3.0)), entity2=g.findAt((
-#    0.0, 3.0)), addUndoState=False)
-#s1.CoincidentConstraint(entity1=v.findAt((-1.801388, -3.0)), entity2=g.findAt((
-#    0.0, -3.0)), addUndoState=False)
-
-
-#g, v, d, c = s1.geometry, s1.vertices, s1.dimensions, s1.constraints
-
-###############################################
-#create_line_with_constraint()
-################################################
-
-#s1.setPrimaryObject(option=SUPERIMPOSE)
-#p = mdb.models['Model-1'].parts['Part-1']
-#p.projectReferencesOntoSketch(sketch=s1, filter=COPLANAR_EDGES)
-
-#p = mdb.models['Model-1'].parts['Part-1']
-
-#print " faces = " % p.faces
-#dump_obj(p)
-# create_part(s)
-
-
-#session.viewports['Viewport: 1'].setValues(displayedObject=p)
+print_faces()
