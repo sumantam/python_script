@@ -120,54 +120,6 @@ def check_horizontal_membership(face, edges):
 
 
 
-def populate_global_dict(p, points_0, points_1, pickedFaces, vertical = True):
-
-    faces = p.faces
-    edges = p.edges
-
-    for f in faces :
-
-        new_list = list()
-        print "The faces are given as "
-        print f
-
-        if (vertical == True):
-            print "In the correct point"
-
-            face_x = get_x(f.pointOn)
-            face_y = get_y(f.pointOn)
-
-            print "The face x and y are ", (face_x, face_y)
-
-            #if ()
-
-        elif (vertical != true):
-            print "Needs to be solved later"
-
-
-    for e in edges :
-        vv = e.getVertices()
-        print "The edges are given as"
-        print p.vertices[vv[0]], p.vertices[vv[1]]
-
-
-    print "The points are given as "
-    print points_0, points_1
-
-    print " <<<<<<<<<<<<<< END >>>>>>>>>>>>>>>>"
-
-
-    #A face is picked and hence all its edges
-    #will either be in one hash of the face or another
-    #hash of another face.
-    #After that remove the pickedFaces
-
-
-    #del G_dict_face2edges[pickedFaces]
-
-
-
-
 def bifurcate(point1, point2, ratio = 0.5):
 
     coord = (0.0, 0.0)
@@ -191,10 +143,6 @@ def bifurcate(point1, point2, ratio = 0.5):
     else:
         print "There is an error in the points, pls check"
 
-    print "~~~~~~~~~~~~~~~~~~~~~~"
-    print "The coordinates are given as :"
-    print coord, ratio
-    print "~~~~~~~~~~~~~~~~~~~~~~"
     return coord
 
 #def unset_and_delete_sketch(p, s):
@@ -271,9 +219,54 @@ def bifurcate_edges(p, s1, face_number = 0):
     e1, d2 = p.edges, p.datums
     p.PartitionFaceBySketch(faces=pickedFaces, sketch=s1)
 
-    #populate_global_dict(p, points[0], points[1], pickedFaces)
     s1.unsetPrimaryObject()
     del mdb.models['Model-1'].sketches['__profile__']
+
+
+
+def create_material_prop(prop):
+
+    mat_list = mdb.models['Model-1'].materials
+    mat_list_len = len(mat_list)
+
+    mat_name = 'Mat-' + str(mat_list_len+1)
+
+    #print "The name of the material list is ", mat_name
+    mdb.models['Model-1'].Material(name=mat_name)
+    mdb.models['Model-1'].materials[mat_name].Elastic(table=(prop, ))
+
+    mm = mdb.models['Model-1'].materials[mat_name]
+    return mm
+
+def section_create(mat):
+
+    section_list = mdb.models['Model-1'].sections.keys()
+    section_list_len = len(section_list)
+
+    mat_name = mat.name
+    sect_name = 'Section-' + str(section_list_len+1)
+    ss = mdb.models['Model-1'].HomogeneousSolidSection(name=sect_name,
+        material=mat_name, thickness=None)
+    return ss
+
+def region_create(section, face):
+
+    p = mdb.models['Model-1'].parts['Part-1']
+    region_list = p.sets.keys()
+    region_list_len = len(region_list)
+    region_name = 'Set-' + str(region_list_len + 1)
+
+    #This is an ugly way but needs to look up later
+    ###########################################################
+    f = p.faces
+    faces = f.findAt((face.pointOn[0], ))
+
+
+    section_name = section.name
+
+    region = p.Set(faces=faces, name=region_name)
+    p.SectionAssignment(region=region, sectionName=section_name, offset=0.0,
+        offsetType=MIDDLE_SURFACE, offsetField='',thicknessAssignment=FROM_SECTION)
 
 
 def print_faces():
@@ -313,6 +306,14 @@ point1=(5.0, 20.0)
 point2=(50.0, 10.0)
 normal=(0.0, 0.0, 1.0)
 
+###################################################################
+#First is the youngs modulus and then is the poisson ratio
+##################################################################
+
+mat_prop_1 = (1200, 0.3)
+mat_prop_2 = (1500, 0.5)
+
+
 p = create_part(s, point1, point2)
 
 f, e, d1 = p.faces, p.edges, p.datums
@@ -325,6 +326,111 @@ bifurcate_edges(p, s1)
 s2 = create_new_sketch_transform(p, face_coord, origin)
 bifurcate_edges(p, s2)
 
-#bifurcate_edges(p, s1, )
+mm1 = create_material_prop(mat_prop_1)
+mm2 = create_material_prop(mat_prop_2)
 
-print_faces()
+####################################################################
+# create same number of sections as the material number
+####################################################################
+
+ss1 = section_create(mm1)
+ss2 = section_create(mm2)
+
+region_create(ss1, p.faces[0])
+region_create(ss2, p.faces[1])
+region_create(ss1, p.faces[2])
+
+
+
+def testing():
+    
+    a = mdb.models['Model-1'].rootAssembly
+    session.viewports['Viewport: 1'].setValues(displayedObject=a)
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(
+        optimizationTasks=OFF, geometricRestrictions=OFF, stopConditions=OFF)
+    p = mdb.models['Model-1'].parts['Part-1']
+    session.viewports['Viewport: 1'].setValues(displayedObject=p)
+    a = mdb.models['Model-1'].rootAssembly
+    session.viewports['Viewport: 1'].setValues(displayedObject=a)
+    a = mdb.models['Model-1'].rootAssembly
+    a.DatumCsysByThreePoints(coordSysType=CYLINDRICAL, origin=(0.0, 0.0, 0.0),
+        point1=(1.0, 0.0, 0.0), point2=(0.0, 0.0, -1.0))
+    p = mdb.models['Model-1'].parts['Part-1']
+    a.Instance(name='Part-1-1', part=p, dependent=ON)
+    a = mdb.models['Model-1'].rootAssembly
+    p = mdb.models['Model-1'].parts['Part-1']
+    a.Instance(name='Part-1-2', part=p, dependent=ON)
+    a = mdb.models['Model-1'].rootAssembly
+    del a.features['Part-1-2']
+    cliCommand("""session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)""")
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(
+        adaptiveMeshConstraints=ON)
+    mdb.models['Model-1'].StaticStep(name='Step-1', previous='Initial')
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='Step-1')
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='Initial')
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON,
+        predefinedFields=ON, connectors=ON, adaptiveMeshConstraints=OFF)
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(step='Step-1')
+    session.viewports['Viewport: 1'].view.setValues(nearPlane=43.1777,
+        farPlane=47.3638, width=33.5022, height=12.0138, viewOffsetX=0.565098,
+        viewOffsetY=0.0765116)
+    a = mdb.models['Model-1'].rootAssembly
+    s1 = a.instances['Part-1-1'].edges
+    side1Edges1 = s1.findAt(((14.805646, 4.0, 0.0), ))
+    region = a.Surface(side1Edges=side1Edges1, name='Surf-1')
+    mdb.models['Model-1'].Pressure(name='Load-1', createStepName='Step-1',
+        region=region, distributionType=UNIFORM, field='', magnitude=5000.0,
+        amplitude=UNSET)
+    mdb.models['Model-1'].loads['Load-1'].setValues(magnitude=-5000.0)
+    session.viewports['Viewport: 1'].view.setValues(nearPlane=42.7594,
+        farPlane=47.782, width=39.9451, height=14.3242, viewOffsetX=1.96027,
+        viewOffsetY=0.662617)
+    a = mdb.models['Model-1'].rootAssembly
+    e1 = a.instances['Part-1-1'].edges
+    edges1 = e1.findAt(((7.398959, 10.0, 0.0), ))
+    region = a.Set(edges=edges1, name='Set-1')
+    mdb.models['Model-1'].DisplacementBC(name='BC-1', createStepName='Step-1',
+        region=region, u1=0.0, u2=0.0, ur3=0.0, amplitude=UNSET, fixed=OFF,
+        distributionType=UNIFORM, fieldName='', localCsys=None)
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(mesh=ON, loads=OFF,
+        bcs=OFF, predefinedFields=OFF, connectors=OFF)
+    session.viewports['Viewport: 1'].assemblyDisplay.meshOptions.setValues(
+        meshTechnique=ON)
+    p = mdb.models['Model-1'].parts['Part-1']
+    session.viewports['Viewport: 1'].setValues(displayedObject=p)
+    session.viewports['Viewport: 1'].partDisplay.setValues(sectionAssignments=OFF,
+        engineeringFeatures=OFF, mesh=ON)
+    session.viewports['Viewport: 1'].partDisplay.meshOptions.setValues(
+        meshTechnique=ON)
+    p = mdb.models['Model-1'].parts['Part-1']
+    p.seedPart(size=0.72, deviationFactor=0.1, minSizeFactor=0.1)
+    p = mdb.models['Model-1'].parts['Part-1']
+    p.generateMesh()
+    a1 = mdb.models['Model-1'].rootAssembly
+    a1.regenerate()
+    a = mdb.models['Model-1'].rootAssembly
+    session.viewports['Viewport: 1'].setValues(displayedObject=a)
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(mesh=OFF)
+    session.viewports['Viewport: 1'].assemblyDisplay.meshOptions.setValues(
+        meshTechnique=OFF)
+    mdb.Job(name='Job-1', model='Model-1', description='new', type=ANALYSIS,
+        atTime=None, waitMinutes=0, waitHours=0, queue=None, memory=90,
+        memoryUnits=PERCENTAGE, getMemoryFromAnalysis=True,
+        explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE, echoPrint=OFF,
+        modelPrint=OFF, contactPrint=OFF, historyPrint=OFF, userSubroutine='',
+        scratch='', resultsFormat=ODB, multiprocessingMode=DEFAULT, numCpus=1,
+        numGPUs=0)
+    mdb.jobs['Job-1'].submit(consistencyChecking=OFF)
+    session.viewports['Viewport: 1'].partDisplay.setValues(sectionAssignments=ON,
+        engineeringFeatures=ON, mesh=OFF)
+    session.viewports['Viewport: 1'].partDisplay.meshOptions.setValues(
+        meshTechnique=OFF)
+    p1 = mdb.models['Model-1'].parts['Part-1']
+    session.viewports['Viewport: 1'].setValues(displayedObject=p1)
+    mdb.models['Model-1'].materials['Mat-2'].elastic.setValues(table=((1500.0,
+        0.45), ))
+    a = mdb.models['Model-1'].rootAssembly
+    session.viewports['Viewport: 1'].setValues(displayedObject=a)
+    mdb.jobs['Job-1'].submit(consistencyChecking=OFF)
+    mdb.jobs['Job-1'].submit(consistencyChecking=OFF)
+    mdb.jobs['Job-1'].submit(consistencyChecking=OFF)
