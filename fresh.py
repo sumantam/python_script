@@ -329,8 +329,9 @@ def get_face_boundary(facenumber, top=TRUE):
             if (get_y(m) > get_y(side)):
                 side = m
 
-    print "The vertices in the hor_list  ", hor_list
+    #print "The vertices in the hor_list  ", hor_list
 
+    return side
 
 
 
@@ -411,6 +412,7 @@ create_assembly()
 create_steps()
 
 face_bound = get_face_boundary(boundary_face_number, TRUE)
+
 print "The face boundary is ", face_bound
 #side1Edges1 = s1.findAt(((14.805646, 4.0, 0.0), ))
 
