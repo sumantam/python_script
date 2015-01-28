@@ -104,19 +104,24 @@ def create_origin_coord(point1, point2):
     return (coord[0], coord[1], 0.0)
 
 
-def get_x(object_pointOn):
-    return pointOn[0][0]
+def get_x(object):
+    return object.pointOn[0][0]
 
-def get_y(object_pointOn):
-    return pointOn[0][1]
+def get_y(object):
+    return object.pointOn[0][1]
 
-def check_horizontal_membership(face, edges):
-    for e in edges  :
-        face_coord = face.pointOn
-        vv = e.getVertices()
+def check_horizontal_membership(root_assembly, edge):
 
+    vv = edge.getVertices()
+    point1 = root_assembly.vertices[vv[0]]
+    point2 = root_assembly.vertices[vv[1]]
 
-        #if (get_x(face.pointOn) )
+    if ((point1.pointOn[0][1]) == (point2.pointOn[0][1])):
+        ee = edge
+    else :
+        ee = None
+
+    return ee
 
 
 
@@ -269,6 +274,66 @@ def region_create(section, face):
         offsetType=MIDDLE_SURFACE, offsetField='',thicknessAssignment=FROM_SECTION)
 
 
+def create_assembly():
+    a = mdb.models['Model-1'].rootAssembly
+    session.viewports['Viewport: 1'].setValues(displayedObject=a)
+    a = mdb.models['Model-1'].rootAssembly
+    a.DatumCsysByThreePoints(coordSysType=CYLINDRICAL, origin=(0.0, 0.0, 0.0),
+        point1=(1.0, 0.0, 0.0), point2=(0.0, 0.0, -1.0))
+    p = mdb.models['Model-1'].parts['Part-1']
+    a.Instance(name='Part-1-1', part=p, dependent=ON)
+
+
+def create_steps():
+
+    list_step = ()
+    list_step = session.viewports['Viewport: 1'].assemblyDisplay.step
+    len_list_step = len(list_step)
+    step_name = 'Set-' + str(len_list_step + 1)
+
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(
+        adaptiveMeshConstraints=ON)
+    mdb.models['Model-1'].StaticStep(name=step_name, previous='Initial')
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(step=step_name)
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(loads=ON, bcs=ON,
+        predefinedFields=ON, connectors=ON, adaptiveMeshConstraints=OFF)
+    session.viewports['Viewport: 1'].assemblyDisplay.setValues(step=step_name)
+
+def get_face_boundary(facenumber, top=TRUE):
+
+    hor_list = list()
+    a = mdb.models['Model-1'].rootAssembly
+    edges = a.instances['Part-1-1'].edges
+    e_index_list = a.instances['Part-1-1'].faces[facenumber].getEdges()
+
+    for i in e_index_list :
+        e = edges[i]
+        hh = check_horizontal_membership(a.instances['Part-1-1'], e)
+
+        if hh is None :
+            continue
+        else:
+            hor_list.append(hh)
+
+
+    if (top == TRUE):
+        side = hor_list[0];
+        for m in hor_list:
+            print "The value of m is ", m.pointOn[0]
+            if (get_y(m) < get_y(side)):
+                side = m
+
+    else :
+        side = hor_list[0];
+        for m in hor_list:
+            if (get_y(m) > get_y(side)):
+                side = m
+
+    print "The vertices in the hor_list  ", hor_list
+
+
+
+
 def print_faces():
     p = mdb.models['Model-1'].parts['Part-1']
     faces = p.faces
@@ -277,7 +342,8 @@ def print_faces():
         print f
 
 
-
+def clear_and_delete_db():
+    print " The database needs to be cleared and deleted"
 
 
 
@@ -305,7 +371,8 @@ s = create_sketch()
 point1=(5.0, 20.0)
 point2=(50.0, 10.0)
 normal=(0.0, 0.0, 1.0)
-
+boundary_face_number = 2 # The index of the faces are starting from 0, so essentially the 3rd face
+fixed_face_number = 0
 ###################################################################
 #First is the youngs modulus and then is the poisson ratio
 ##################################################################
@@ -340,10 +407,17 @@ region_create(ss1, p.faces[0])
 region_create(ss2, p.faces[1])
 region_create(ss1, p.faces[2])
 
+create_assembly()
+create_steps()
+
+face_bound = get_face_boundary(boundary_face_number, TRUE)
+print "The face boundary is ", face_bound
+#side1Edges1 = s1.findAt(((14.805646, 4.0, 0.0), ))
+
 
 
 def testing():
-    
+
     a = mdb.models['Model-1'].rootAssembly
     session.viewports['Viewport: 1'].setValues(displayedObject=a)
     session.viewports['Viewport: 1'].assemblyDisplay.setValues(
