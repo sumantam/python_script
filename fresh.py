@@ -154,6 +154,7 @@ def bifurcate(point1, point2, ratio = 0.5):
 
 def create_new_sketch_transform(p, face_coord, origin):
 
+    f = p.faces
     t = p.MakeSketchTransform(sketchPlane=f.findAt(coordinates= face_coord,
     normal= normal), sketchPlaneSide=SIDE1, origin=origin)
 
@@ -347,18 +348,94 @@ def clear_and_delete_db():
     print " The database needs to be cleared and deleted"
 
 
+def create_and_run_jobs(
+                        session,
+                        point1,
+                        point2,
+                        normal,
+                        boundary_face_number,
+                        fixed_face_number,
+                        mat_prop_1,
+                        mat_prop_2
+                        ):
+
+
+    s = create_sketch()
+    p = create_part(s, point1, point2)
+
+    f, e, d1 = p.faces, p.edges, p.datums
+    face_coord = create_face_coord(point1, point2)
+    origin = (0.0, 0.0, 0.0)
+
+    s1 = create_new_sketch_transform(p, face_coord, origin)
+    bifurcate_edges(p, s1)
+
+    s2 = create_new_sketch_transform(p, face_coord, origin)
+    bifurcate_edges(p, s2)
+
+    mm1 = create_material_prop(mat_prop_1)
+    mm2 = create_material_prop(mat_prop_2)
+
+    ####################################################################
+    # create same number of sections as the material number
+    ####################################################################
+
+    ss1 = section_create(mm1)
+    ss2 = section_create(mm2)
+
+    region_create(ss1, p.faces[0])
+    region_create(ss2, p.faces[1])
+    region_create(ss1, p.faces[2])
+
+    create_assembly()
+    create_steps()
+
+
+    face_bound_3 = get_face_boundary(boundary_face_number, TRUE)
+    face_bound_1 = get_face_boundary(fixed_face_number, FALSE)
+
+    a = mdb.models['Model-1'].rootAssembly
+
+    edge_List = a.instances['Part-1-1'].edges
+
+    region = a.Surface(side1Edges=edge_List.findAt((face_bound_3.pointOn[0],)), name='Surf-1')
+
+    ll = len(mdb.models['Model-1'].steps.keys())
+    name = mdb.models['Model-1'].steps.keys()[-1]
+
+    ############## Create Boundary Conditions #########################################
+    mdb.models['Model-1'].Pressure(name='Load-1', createStepName=name,
+            region=region, distributionType=UNIFORM, field='', magnitude=-5000.0,
+            amplitude=UNSET)
+
+    region = a.Set(edges=edge_List.findAt((face_bound_1.pointOn[0],)), name='Set-1')
+
+    mdb.models['Model-1'].DisplacementBC(name='BC-1', createStepName=name,
+        region=region, u1=0.0, u2=0.0, ur3=0.0, amplitude=UNSET, fixed=OFF,
+        distributionType=UNIFORM, fieldName='', localCsys=None)
+
+    ###################################  Meshing ##########################
+
+    p = mdb.models['Model-1'].parts['Part-1']
+    p.seedPart(size=2.2, deviationFactor=0.1, minSizeFactor=0.1)
+    p.generateMesh()
+
+    a1 = mdb.models['Model-1'].rootAssembly
+    a1.regenerate()
+
+
+    ########################### Job Submission ############################
+    mdb.Job(name='Job-3', model='Model-1', description='', type=ANALYSIS,
+        atTime=None, waitMinutes=0, waitHours=0, queue=None, memory=90,
+        memoryUnits=PERCENTAGE, getMemoryFromAnalysis=True,
+        explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE, echoPrint=OFF,
+        modelPrint=OFF, contactPrint=OFF, historyPrint=OFF, userSubroutine='',
+        scratch='', resultsFormat=ODB, multiprocessingMode=DEFAULT, numCpus=1,
+        numGPUs=0)
+    mdb.jobs['Job-3'].submit(consistencyChecking=OFF)
 
 
 
-##############################################################
-#   This is the start of the main part of the code
-#   Above all functions are called
-##############################################################
-
-cliCommand("""session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)""")
-
-session = create_session(435, 184)
-s = create_sketch()
 
 ################################################################
 #   it is important to provide the order of the points in the same
@@ -381,79 +458,24 @@ mat_prop_2 = (1500, 0.15)   # Youngs modulus , poisson ratio
 ############# End of the User Input ###############################
 
 
+##############################################################
+#   This is the start of the main part of the code
+#   Above all functions are called
+##############################################################
+
+cliCommand("""session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)""")
+
+session = create_session(435, 184)
+
+create_and_run_jobs(session,
+                    point1,point2,
+                    normal,boundary_face_number,
+                    fixed_face_number,mat_prop_1,
+                    mat_prop_2)
 
 
-p = create_part(s, point1, point2)
-
-f, e, d1 = p.faces, p.edges, p.datums
-face_coord = create_face_coord(point1, point2)
-origin = (0.0, 0.0, 0.0)
-
-s1 = create_new_sketch_transform(p, face_coord, origin)
-bifurcate_edges(p, s1)
-
-s2 = create_new_sketch_transform(p, face_coord, origin)
-bifurcate_edges(p, s2)
-
-mm1 = create_material_prop(mat_prop_1)
-mm2 = create_material_prop(mat_prop_2)
-
-####################################################################
-# create same number of sections as the material number
-####################################################################
-
-ss1 = section_create(mm1)
-ss2 = section_create(mm2)
-
-region_create(ss1, p.faces[0])
-region_create(ss2, p.faces[1])
-region_create(ss1, p.faces[2])
-
-create_assembly()
-create_steps()
 
 
-face_bound_3 = get_face_boundary(boundary_face_number, TRUE)
-face_bound_1 = get_face_boundary(fixed_face_number, FALSE)
 
-a = mdb.models['Model-1'].rootAssembly
-
-edge_List = a.instances['Part-1-1'].edges
-
-region = a.Surface(side1Edges=edge_List.findAt((face_bound_3.pointOn[0],)), name='Surf-1')
-
-ll = len(mdb.models['Model-1'].steps.keys())
-name = mdb.models['Model-1'].steps.keys()[-1]
-
-############## Create Boundary Conditions #########################################
-mdb.models['Model-1'].Pressure(name='Load-1', createStepName=name,
-        region=region, distributionType=UNIFORM, field='', magnitude=-5000.0,
-        amplitude=UNSET)
-
-region = a.Set(edges=edge_List.findAt((face_bound_1.pointOn[0],)), name='Set-1')
-
-mdb.models['Model-1'].DisplacementBC(name='BC-1', createStepName=name,
-    region=region, u1=0.0, u2=0.0, ur3=0.0, amplitude=UNSET, fixed=OFF,
-    distributionType=UNIFORM, fieldName='', localCsys=None)
-
-###################################  Meshing ##########################
-
-p = mdb.models['Model-1'].parts['Part-1']
-p.seedPart(size=2.2, deviationFactor=0.1, minSizeFactor=0.1)
-p.generateMesh()
-
-a1 = mdb.models['Model-1'].rootAssembly
-a1.regenerate()
-
-
-########################### Job Submission ############################
-mdb.Job(name='Job-3', model='Model-1', description='', type=ANALYSIS,
-    atTime=None, waitMinutes=0, waitHours=0, queue=None, memory=90,
-    memoryUnits=PERCENTAGE, getMemoryFromAnalysis=True,
-    explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE, echoPrint=OFF,
-    modelPrint=OFF, contactPrint=OFF, historyPrint=OFF, userSubroutine='',
-    scratch='', resultsFormat=ODB, multiprocessingMode=DEFAULT, numCpus=1,
-    numGPUs=0)
-mdb.jobs['Job-3'].submit(consistencyChecking=OFF)
 
 
