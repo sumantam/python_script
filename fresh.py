@@ -423,18 +423,24 @@ def create_and_run_jobs(
     a1 = mdb.models['Model-1'].rootAssembly
     a1.regenerate()
 
-
     ########################### Job Submission ############################
-    mdb.Job(name='Job-3', model='Model-1', description='', type=ANALYSIS,
+
+    job_list = mdb.jobs.keys()
+    job_list_len = len(job_list)
+
+    job_name = 'Job-' + str(job_list_len+1)
+
+    mdb.Job(name=job_name, model='Model-1', description='', type=ANALYSIS,
         atTime=None, waitMinutes=0, waitHours=0, queue=None, memory=90,
         memoryUnits=PERCENTAGE, getMemoryFromAnalysis=True,
         explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE, echoPrint=OFF,
         modelPrint=OFF, contactPrint=OFF, historyPrint=OFF, userSubroutine='',
         scratch='', resultsFormat=ODB, multiprocessingMode=DEFAULT, numCpus=1,
         numGPUs=0)
-    mdb.jobs['Job-3'].submit(consistencyChecking=OFF)
+    mdb.jobs[job_name].submit(consistencyChecking=OFF)
 
 
+    return mdb.jobs[job_name]
 
 
 ################################################################
@@ -467,12 +473,47 @@ cliCommand("""session.journalOptions.setValues(replayGeometry=COORDINATE, recove
 
 session = create_session(435, 184)
 
-create_and_run_jobs(session,
+job = create_and_run_jobs(session,
                     point1,point2,
                     normal,boundary_face_number,
                     fixed_face_number,mat_prop_1,
                     mat_prop_2)
 
+job.waitForCompletion()
+
+output_path = 'C:/Temp/' + job.name + '.odb'
+
+print "The output path of the job is given as ", output_path
+
+o1 = session.openOdb(name=output_path)
+session.viewports['Viewport: 1'].setValues(displayedObject=o1)
+
+def tt():
+    session.viewports['Viewport: 1'].setValues(displayedObject=odb)
+    session.viewports['Viewport: 1'].odbDisplay.display.setValues(plotState=(
+        CONTOURS_ON_DEF, ))
+
+    session.Path(name='Path-1', type=POINT_LIST, expression=((5.0, 15.0, 0.0), (
+        50.0, 15.0, 0.0)))
+    session.viewports['Viewport: 1'].odbDisplay.setPrimaryVariable(
+        variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
+        'S11'))
+    xyp = session.XYPlot('XYPlot-1')
+    chartName = xyp.charts.keys()[0]
+    chart = xyp.charts[chartName]
+    pth = session.paths['Path-1']
+    xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
+        projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
+        projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
+    c1 = session.Curve(xyData=xy1)
+    chart.setValues(curvesToPlot=(c1, ), )
+    session.viewports['Viewport: 1'].setValues(displayedObject=xyp)
+    pth = session.paths['Path-1']
+    session.XYDataFromPath(name='XYData-1', path=pth, includeIntersections=True,
+        projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
+        projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
+    x0 = session.xyDataObjects['XYData-1']
+    session.writeXYReport(fileName='abaqus.rpt', xyData=(x0, ))
 
 
 
