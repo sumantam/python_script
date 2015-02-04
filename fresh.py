@@ -167,7 +167,7 @@ def create_new_sketch_transform(p, face_coord, origin):
 
     return s1
 
-def bifurcate_edges(p, s1, face_number = 0):
+def bifurcate_edges(p, s1, ratio = 0.5, face_number = 0):
 
     edges = p.faces[face_number].getEdges()
     face = p.faces[face_number]
@@ -191,7 +191,7 @@ def bifurcate_edges(p, s1, face_number = 0):
         v_2 = (p.vertices[vertex_2])
 
         if (v_1.pointOn[0][1] == v_2.pointOn[0][1]):
-            coord = bifurcate(v_1.pointOn[0], v_2.pointOn[0], 0.3)
+            coord = bifurcate(v_1.pointOn[0], v_2.pointOn[0], ratio)
             print " The coord, vertex 1 and vertex 2  is "
             print (coord, v_1, v_2)
             points.append(coord)
@@ -356,7 +356,9 @@ def create_and_run_jobs(
                         boundary_face_number,
                         fixed_face_number,
                         mat_prop_1,
-                        mat_prop_2
+                        mat_prop_2,
+                        ratio_one,
+                        ratio_second
                         ):
 
 
@@ -368,10 +370,10 @@ def create_and_run_jobs(
     origin = (0.0, 0.0, 0.0)
 
     s1 = create_new_sketch_transform(p, face_coord, origin)
-    bifurcate_edges(p, s1)
+    bifurcate_edges(p, s1, ratio_one)
 
     s2 = create_new_sketch_transform(p, face_coord, origin)
-    bifurcate_edges(p, s2)
+    bifurcate_edges(p, s2, ratio_second)
 
     mm1 = create_material_prop(mat_prop_1)
     mm2 = create_material_prop(mat_prop_2)
@@ -439,9 +441,51 @@ def create_and_run_jobs(
         numGPUs=0)
     mdb.jobs[job_name].submit(consistencyChecking=OFF)
 
+    mdb.jobs[job_name].waitForCompletion()
 
     return mdb.jobs[job_name]
 
+
+def print_output(
+                job,
+                point1,
+                point2,
+                session
+                ):
+
+    output_path = 'C:/Temp/' + job.name + '.odb'
+
+    viewport_list = session.viewports.keys()
+    viewport_list_len = len(viewport_list)
+    job_name = 'Viewport: ' + str(viewport_list_len)
+
+    path_list = session.viewports.keys()
+    path_list_len = len(path_list)
+    path_name = 'Path-' + str(path_list_len)
+
+    print "The path name is ", path_name
+
+    o1 = session.openOdb(name=output_path)
+    session.viewports[job_name].setValues(displayedObject=o1)
+
+    session.Path(name=path_name, type=POINT_LIST, expression=(point1, point2))
+
+    xyp = session.XYPlot('XYPlot-1')
+
+    chartName = xyp.charts.keys()[0]
+    chart = xyp.charts[chartName]
+    pth = session.paths[path_name]
+    xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
+            projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
+            projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
+    c1 = session.Curve(xyData=xy1)
+    chart.setValues(curvesToPlot=(c1, ), )
+    session.viewports[job_name].setValues(displayedObject=xyp)
+
+    pth = session.paths[path_name]
+    session.XYDataFromPath(name='XYData-1', path=pth, includeIntersections=True,
+            projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
+            projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
 
 ################################################################
 #   it is important to provide the order of the points in the same
@@ -461,6 +505,11 @@ fixed_face_number = 0
 mat_prop_1 = (1200, 0.3)    # Youngs modulus , poisson ratio
 mat_prop_2 = (1500, 0.15)   # Youngs modulus , poisson ratio
 
+ratio_one = 0.3            # These two need some more explanation or writing
+ratio_two = 0.8            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
+
+
+
 ############# End of the User Input ###############################
 
 
@@ -477,16 +526,13 @@ job = create_and_run_jobs(session,
                     point1,point2,
                     normal,boundary_face_number,
                     fixed_face_number,mat_prop_1,
-                    mat_prop_2)
+                    mat_prop_2,
+                    ratio_one,
+                    ratio_two)
 
-job.waitForCompletion()
+print_output(job,point1,point2,session)
 
-output_path = 'C:/Temp/' + job.name + '.odb'
 
-print "The output path of the job is given as ", output_path
-
-o1 = session.openOdb(name=output_path)
-session.viewports['Viewport: 1'].setValues(displayedObject=o1)
 
 def tt():
     session.viewports['Viewport: 1'].setValues(displayedObject=odb)
