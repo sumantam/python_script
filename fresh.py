@@ -44,7 +44,8 @@ def get_model():
 
 
 def create_sketch():
-    s = mdb.models['Model-1'].ConstrainedSketch(name='__profile__',
+    m = get_model()
+    s = m.ConstrainedSketch(name='__profile__',
         sheetSize=200.0)
     g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
     s.sketchOptions.setValues(viewStyle=AXISYM)
@@ -58,9 +59,10 @@ def create_part(s, point1, point2):
 
     # Creating a rectangle
     s.rectangle(point1=point1, point2=point2)
-    p = mdb.models['Model-1'].Part(name='Part-1', dimensionality=AXISYMMETRIC,
-        type=DEFORMABLE_BODY)
     mm = get_model()
+    p = mm.Part(name='Part-1', dimensionality=AXISYMMETRIC,
+        type=DEFORMABLE_BODY)
+
     p = get_parts(mm)
 
     p.BaseShell(sketch=s)
@@ -158,7 +160,7 @@ def create_new_sketch_transform(p, face_coord, origin):
     t = p.MakeSketchTransform(sketchPlane=f.findAt(coordinates= face_coord,
     normal= normal), sketchPlaneSide=SIDE1, origin=origin)
 
-    s1 = mdb.models['Model-1'].ConstrainedSketch(name='__profile__',
+    s1 = get_model().ConstrainedSketch(name='__profile__',
         sheetSize=100, gridSpacing=1.11, transform=t)
 
     s1.setPrimaryObject(option=SUPERIMPOSE)
@@ -166,6 +168,67 @@ def create_new_sketch_transform(p, face_coord, origin):
     p.projectReferencesOntoSketch(sketch=s1, filter=COPLANAR_EDGES)
 
     return s1
+
+def get_face_edges(face_number):
+
+    a = get_model().rootAssembly
+    p = get_model().parts['Part-1']
+    face = a.faces[face_number]
+    face_edges = face.getEdges()
+
+    ver = a.vertices()
+
+    for e in face_edges :
+        ##############################################
+        #Check if the edge is in the list of vertices
+        ###############################################
+
+
+        vertices = a.edges[e].getVertices()
+        vertex_1 = vertices[0]
+        vertex_2 = vertices[1]
+
+        print "The verticesw are given as ", vertex_1, vertex_2
+
+###########################################################################
+# This is a bad algorithm and I am sure there are better ways to do it
+# But I do not have a handle to the data structure and so it is painful
+###########################################################################
+
+#def get_face_number(point1, point2):
+#
+#    face_list = p.faces
+#
+#    for face in face_list:
+#        edges = face.getEdges()
+#
+#        for e in edges :
+
+
+
+#############################################################
+# Have to know how to overload a function in python
+#############################################################
+
+
+def split_edges(p, s1, point1, point2, face_number=0):
+
+    s1.Line(point1, point2)
+    centre_point_of_line = bifurcate(point1, point2)
+
+    g = s1.geometry
+
+    s1.VerticalConstraint(entity=g.findAt(centre_point_of_line), addUndoState=False)
+    s1.setPrimaryObject(option=SUPERIMPOSE)
+    p = get_model().parts['Part-1']
+    p.projectReferencesOntoSketch(sketch=s1, filter=COPLANAR_EDGES)
+    p = get_model().parts['Part-1']
+    f = p.faces
+
+    pickedFaces = f.findAt((point1[0], point1[1], 0),)
+    p.PartitionFaceBySketch(faces=pickedFaces, sketch=s1)
+
+
 
 def bifurcate_edges(p, s1, ratio = 0.5, face_number = 0):
 
@@ -192,8 +255,8 @@ def bifurcate_edges(p, s1, ratio = 0.5, face_number = 0):
 
         if (v_1.pointOn[0][1] == v_2.pointOn[0][1]):
             coord = bifurcate(v_1.pointOn[0], v_2.pointOn[0], ratio)
-            print " The coord, vertex 1 and vertex 2  is "
-            print (coord, v_1, v_2)
+            #print " The coord, vertex 1 and vertex 2  is "
+            #print (coord, v_1, v_2)
             points.append(coord)
 
     if (len(points)==2):
@@ -209,9 +272,9 @@ def bifurcate_edges(p, s1, ratio = 0.5, face_number = 0):
 
     s1.VerticalConstraint(entity=g.findAt(centre_point_of_line), addUndoState=False)
     s1.setPrimaryObject(option=SUPERIMPOSE)
-    p = mdb.models['Model-1'].parts['Part-1']
+    p = get_model().parts['Part-1']
     p.projectReferencesOntoSketch(sketch=s1, filter=COPLANAR_EDGES)
-    p = mdb.models['Model-1'].parts['Part-1']
+    p = get_model().parts['Part-1']
     f = p.faces
 
 
@@ -225,9 +288,11 @@ def bifurcate_edges(p, s1, ratio = 0.5, face_number = 0):
     e1, d2 = p.edges, p.datums
     p.PartitionFaceBySketch(faces=pickedFaces, sketch=s1)
 
-    s1.unsetPrimaryObject()
-    del mdb.models['Model-1'].sketches['__profile__']
 
+
+def delete_sketch(sketch):
+    sketch.unsetPrimaryObject()
+    del get_model().sketches['__profile__']
 
 
 def create_material_prop(prop):
@@ -238,26 +303,26 @@ def create_material_prop(prop):
     mat_name = 'Mat-' + str(mat_list_len+1)
 
     #print "The name of the material list is ", mat_name
-    mdb.models['Model-1'].Material(name=mat_name)
-    mdb.models['Model-1'].materials[mat_name].Elastic(table=(prop, ))
+    get_model().Material(name=mat_name)
+    get_model().materials[mat_name].Elastic(table=(prop, ))
 
     mm = mdb.models['Model-1'].materials[mat_name]
     return mm
 
 def section_create(mat):
 
-    section_list = mdb.models['Model-1'].sections.keys()
+    section_list = get_model().sections.keys()
     section_list_len = len(section_list)
 
     mat_name = mat.name
     sect_name = 'Section-' + str(section_list_len+1)
-    ss = mdb.models['Model-1'].HomogeneousSolidSection(name=sect_name,
+    ss = get_model().HomogeneousSolidSection(name=sect_name,
         material=mat_name, thickness=None)
     return ss
 
 def region_create(section, face):
 
-    p = mdb.models['Model-1'].parts['Part-1']
+    p = get_model().parts['Part-1']
     region_list = p.sets.keys()
     region_list_len = len(region_list)
     region_name = 'Set-' + str(region_list_len + 1)
@@ -276,7 +341,7 @@ def region_create(section, face):
 
 
 def create_assembly():
-    a = mdb.models['Model-1'].rootAssembly
+    a = get_model().rootAssembly
     session.viewports['Viewport: 1'].setValues(displayedObject=a)
     a = mdb.models['Model-1'].rootAssembly
     a.DatumCsysByThreePoints(coordSysType=CYLINDRICAL, origin=(0.0, 0.0, 0.0),
@@ -303,7 +368,7 @@ def create_steps():
 def get_face_boundary(facenumber, top=TRUE):
 
     hor_list = list()
-    a = mdb.models['Model-1'].rootAssembly
+    a = get_model().rootAssembly
     edges = a.instances['Part-1-1'].edges
     e_index_list = a.instances['Part-1-1'].faces[facenumber].getEdges()
 
@@ -337,7 +402,7 @@ def get_face_boundary(facenumber, top=TRUE):
 
 
 def print_faces():
-    p = mdb.models['Model-1'].parts['Part-1']
+    p = get_model().parts['Part-1']
     faces = p.faces
 
     for f in faces:
@@ -358,7 +423,9 @@ def create_and_run_jobs(
                         mat_prop_1,
                         mat_prop_2,
                         ratio_one,
-                        ratio_second
+                        ratio_second,
+                        mesh_size = 1.2,
+                        option = FALSE
                         ):
 
 
@@ -369,11 +436,45 @@ def create_and_run_jobs(
     face_coord = create_face_coord(point1, point2)
     origin = (0.0, 0.0, 0.0)
 
-    s1 = create_new_sketch_transform(p, face_coord, origin)
-    bifurcate_edges(p, s1, ratio_one)
+    ##################################################################################
+    # Since most users would not want to think of the complications of ratios
+    # we would want to put that independent and have the coordinates at which
+    # the partition being done given at one shot sometimes.
+    # In case not,  an option is being provided to do the old way
+    ##################################################################################
 
-    s2 = create_new_sketch_transform(p, face_coord, origin)
-    bifurcate_edges(p, s2, ratio_second)
+
+    if (option == TRUE):
+        s1 = create_new_sketch_transform(p, face_coord, origin)
+        delete_sketch(s1)
+        bifurcate_edges(p, s1, ratio_one)
+
+        s2 = create_new_sketch_transform(p, face_coord, origin)
+        delete_sketch(s2)
+        bifurcate_edges(p, s2, ratio_second)
+
+    else :
+
+        s1 = create_new_sketch_transform(p, face_coord, origin)
+
+        div_point_one = point1
+        div_point_one_prime = (point2[0], point1[1], 0)
+
+        div_point_two = point2
+        div_point_two_prime = (point1[0], point2[1], 0)
+
+        pp1 = bifurcate(div_point_one ,  div_point_one_prime, ratio_one)
+        pp2 = bifurcate(div_point_two, div_point_two_prime, ratio_one)
+
+        split_edges(p, s1, pp1, pp2)
+
+        pp1 = bifurcate(div_point_one ,  div_point_one_prime, ratio_second)
+        pp2 = bifurcate(div_point_two, div_point_two_prime, ratio_second)
+
+        split_edges(p, s1, pp1, pp2)
+
+        delete_sketch(s1)
+
 
     mm1 = create_material_prop(mat_prop_1)
     mm2 = create_material_prop(mat_prop_2)
@@ -396,33 +497,34 @@ def create_and_run_jobs(
     face_bound_3 = get_face_boundary(boundary_face_number, TRUE)
     face_bound_1 = get_face_boundary(fixed_face_number, FALSE)
 
-    a = mdb.models['Model-1'].rootAssembly
+    mm = get_model()
+    a = mm.rootAssembly
 
     edge_List = a.instances['Part-1-1'].edges
 
     region = a.Surface(side1Edges=edge_List.findAt((face_bound_3.pointOn[0],)), name='Surf-1')
 
-    ll = len(mdb.models['Model-1'].steps.keys())
-    name = mdb.models['Model-1'].steps.keys()[-1]
+    ll = len(mm.steps.keys())
+    name = mm.steps.keys()[-1]
 
     ############## Create Boundary Conditions #########################################
-    mdb.models['Model-1'].Pressure(name='Load-1', createStepName=name,
+    mm.Pressure(name='Load-1', createStepName=name,
             region=region, distributionType=UNIFORM, field='', magnitude=-5000.0,
             amplitude=UNSET)
 
     region = a.Set(edges=edge_List.findAt((face_bound_1.pointOn[0],)), name='Set-1')
 
-    mdb.models['Model-1'].DisplacementBC(name='BC-1', createStepName=name,
+    mm.DisplacementBC(name='BC-1', createStepName=name,
         region=region, u1=0.0, u2=0.0, ur3=0.0, amplitude=UNSET, fixed=OFF,
         distributionType=UNIFORM, fieldName='', localCsys=None)
 
     ###################################  Meshing ##########################
 
-    p = mdb.models['Model-1'].parts['Part-1']
-    p.seedPart(size=2.2, deviationFactor=0.1, minSizeFactor=0.1)
+    p = mm.parts['Part-1']
+    p.seedPart(size=mesh_size, deviationFactor=0.1, minSizeFactor=0.1)
     p.generateMesh()
 
-    a1 = mdb.models['Model-1'].rootAssembly
+    a1 = mm.rootAssembly
     a1.regenerate()
 
     ########################### Job Submission ############################
@@ -468,6 +570,8 @@ def print_output(
     o1 = session.openOdb(name=output_path)
     session.viewports[job_name].setValues(displayedObject=o1)
 
+    get_face_edges(1)
+
     session.Path(name=path_name, type=POINT_LIST, expression=(point1, point2))
 
     xyp = session.XYPlot('XYPlot-1')
@@ -506,7 +610,7 @@ mat_prop_1 = (1200, 0.3)    # Youngs modulus , poisson ratio
 mat_prop_2 = (1500, 0.15)   # Youngs modulus , poisson ratio
 
 ratio_one = 0.3            # These two need some more explanation or writing
-ratio_two = 0.8            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
+ratio_two = 0.1            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
 
 
 
@@ -530,7 +634,7 @@ job = create_and_run_jobs(session,
                     ratio_one,
                     ratio_two)
 
-print_output(job,point1,point2,session)
+#print_output(job,point1,point2,session)
 
 
 
