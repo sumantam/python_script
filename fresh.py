@@ -433,7 +433,7 @@ def create_and_run_jobs(
                         ratio_one,
                         ratio_second,
                         Load,
-                        mesh_size = 0.2,
+                        mesh_size = 0.02,
                         option = FALSE
                         ):
 
@@ -609,7 +609,7 @@ def print_output(
 
     session.viewports[job_name].odbDisplay.setPrimaryVariable(
     variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
-    'S22'))
+    'S12'))
 
     chartName = xyp.charts.keys()[0]
     chart = xyp.charts[chartName]
@@ -641,8 +641,8 @@ def print_output(
 
 ############## Beginning of the User Input ###########################
 
-point1=(5.0, 20.0)
-point2=(50.0, 10.0)
+point1=(0.5, 20.0)
+point2=(2.0, 10.0)
 normal=(0.0, 0.0, 1.0)
 boundary_face_number = 2 # The index of the faces are starting from 0, so essentially the 3rd face
 fixed_face_number = 0
@@ -650,10 +650,10 @@ mat_prop_1 = (120000, 0.3)    # Youngs modulus , poisson ratio
 mat_prop_2 = (1500, 0.15)   # Youngs modulus , poisson ratio
 
 ratio_one = 0.5            # These two need some more explanation or writing
-ratio_two = 0.45            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
+ratio_two = 0.498            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
 
-stress_plot_way = 0.5*0.5 + 0.45*0.5
-Load = -500
+stress_plot_way = ratio_one*0.5 + ratio_two*0.5
+Load = -5
 
 
 
