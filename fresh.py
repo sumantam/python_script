@@ -602,14 +602,23 @@ def print_output(
 
     xyp = session.XYPlot(plot_name)
 
+
+    session.viewports[job_name].odbDisplay.setPrimaryVariable(
+    variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
+    'S22'))
+
     chartName = xyp.charts.keys()[0]
     chart = xyp.charts[chartName]
     pth = session.paths[path_name]
+
     xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
             projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
             projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
+
     c1 = session.Curve(xyData=xy1)
     chart.setValues(curvesToPlot=(c1, ), )
+
+
     session.viewports[job_name].setValues(displayedObject=xyp)
 
     pth = session.paths[path_name]
@@ -667,36 +676,50 @@ job = create_and_run_jobs(session,
 print_output(job, point1, point2, stress_plot_way, session)
 
 
-
-def tt():
-    session.viewports['Viewport: 1'].setValues(displayedObject=odb)
-    session.viewports['Viewport: 1'].odbDisplay.display.setValues(plotState=(
-        CONTOURS_ON_DEF, ))
-
-    session.Path(name='Path-1', type=POINT_LIST, expression=((5.0, 15.0, 0.0), (
-        50.0, 15.0, 0.0)))
+def ss():
+    inputfile='D:\Ranjith\My_work\ForSidhanth\ForKumar\E-Variation\E_'+str(h[i])+'.odb'
+    o1 = session.openOdb(name=inputfile)
+    session.viewports['Viewport: 1'].setValues(displayedObject=o1)
+    session.Path(name='Path-1', type=NODE_LIST, expression=(('PART-1-1', (2, 1, )),
+    ))
     session.viewports['Viewport: 1'].odbDisplay.setPrimaryVariable(
-        variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
-        'S11'))
-    xyp = session.XYPlot('XYPlot-1')
+    variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
+    'S22'))
+    plotname='XYPlot-1-h_'+str(h[i])
+    xyp = session.XYPlot(plotname)
     chartName = xyp.charts.keys()[0]
     chart = xyp.charts[chartName]
     pth = session.paths['Path-1']
     xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
         projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-        projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
+        projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_X)
     c1 = session.Curve(xyData=xy1)
     chart.setValues(curvesToPlot=(c1, ), )
     session.viewports['Viewport: 1'].setValues(displayedObject=xyp)
     pth = session.paths['Path-1']
     session.XYDataFromPath(name='XYData-1', path=pth, includeIntersections=True,
         projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-        projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
+        projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_X)
+    session.viewports['Viewport: 1'].odbDisplay.setPrimaryVariable(
+        variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
+        'S12'))
+    xyp = session.xyPlots[plotname]
+    chartName = xyp.charts.keys()[0]
+    chart = xyp.charts[chartName]
+    pth = session.paths['Path-1']
+    xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
+        projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
+        projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_X)
+    c1 = session.Curve(xyData=xy1)
+    chart.setValues(curvesToPlot=(c1, ), )
+    pth = session.paths['Path-1']
+    session.XYDataFromPath(name='XYData-2', path=pth, includeIntersections=True,
+        projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
+        projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_X)
     x0 = session.xyDataObjects['XYData-1']
-    session.writeXYReport(fileName='abaqus.rpt', xyData=(x0, ))
-
-
-
+    x1 = session.xyDataObjects['XYData-2']
+    outputfile='D:\Ranjith\My_work\ForSidhanth\ForKumar\E-Variation\XYDATA-'+str(h[i])+'.txt'
+    session.writeXYReport(fileName=outputfile, xyData=(x0, x1))
 
 
 
