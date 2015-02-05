@@ -560,6 +560,7 @@ def print_output(
                 job,
                 point1,
                 point2,
+                stress_plot_way,
                 session
                 ):
 
@@ -578,9 +579,21 @@ def print_output(
     o1 = session.openOdb(name=output_path)
     session.viewports[job_name].setValues(displayedObject=o1)
 
-    get_face_edges(1)
 
-    session.Path(name=path_name, type=POINT_LIST, expression=(point1, point2))
+    div_point_one = point1
+    div_point_one_prime = (point2[0], point1[1], 0)
+
+    div_point_two = point2
+    div_point_two_prime = (point1[0], point2[1], 0)
+
+    pp1 = bifurcate(div_point_one ,  div_point_one_prime, ratio_one)
+    pp2 = bifurcate(div_point_two, div_point_two_prime, ratio_one)
+
+    print "The generated points for the paths are", pp1, pp2
+
+    pt1 = (pp1[0], pp1[1], 0)
+    pt2 = (pp2[0], pp2[1], 0)
+    session.Path(name=path_name, type=POINT_LIST, expression=(pt1, pt2))
 
     xyp = session.XYPlot('XYPlot-1')
 
@@ -620,6 +633,9 @@ mat_prop_2 = (1500, 0.15)   # Youngs modulus , poisson ratio
 ratio_one = 0.5            # These two need some more explanation or writing
 ratio_two = 0.45            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
 
+stress_plot_way = 0.5*0.5 + 0.45*0.5
+
+
 
 
 ############# End of the User Input ###############################
@@ -642,7 +658,8 @@ job = create_and_run_jobs(session,
                     ratio_one,
                     ratio_two)
 
-#print_output(job,point1,point2,session)
+
+print_output(job, point1, point2, stress_plot_way, session)
 
 
 
