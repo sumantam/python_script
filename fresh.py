@@ -432,6 +432,7 @@ def create_and_run_jobs(
                         mat_prop_2,
                         ratio_one,
                         ratio_second,
+                        Load,
                         mesh_size = 0.2,
                         option = FALSE
                         ):
@@ -517,7 +518,7 @@ def create_and_run_jobs(
 
     ############## Create Boundary Conditions #########################################
     mm.Pressure(name='Load-1', createStepName=name,
-            region=region, distributionType=UNIFORM, field='', magnitude=-5000.0,
+            region=region, distributionType=UNIFORM, field='', magnitude=Load,
             amplitude=UNSET)
 
     region = a.Set(edges=edge_List.findAt((face_bound_1.pointOn[0],)), name='Set-1')
@@ -648,6 +649,7 @@ ratio_one = 0.5            # These two need some more explanation or writing
 ratio_two = 0.45            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
 
 stress_plot_way = 0.5*0.5 + 0.45*0.5
+Load = -5000
 
 
 
@@ -670,7 +672,8 @@ job = create_and_run_jobs(session,
                     fixed_face_number,mat_prop_1,
                     mat_prop_2,
                     ratio_one,
-                    ratio_two)
+                    ratio_two,
+                    Load)
 
 
 print_output(job, point1, point2, stress_plot_way, session)
