@@ -495,9 +495,12 @@ def create_and_run_jobs(
     ss1 = section_create(mm1)
     ss2 = section_create(mm2)
 
-    region_create(ss1, p.faces[0])
-    region_create(ss2, p.faces[1])
-    region_create(ss1, p.faces[2])
+    face_list = p.faces
+    sorted_list = sorted(face_list, key=get_key)
+
+    region_create(ss1, sorted_list[0])
+    region_create(ss2, sorted_list[1])
+    region_create(ss1, sorted_list[2])
 
     create_assembly()
     create_steps()
@@ -633,6 +636,7 @@ def print_output(
 #   the order of the faces.
 #   This seems to be a very quirky part of the tool but I am not
 #   sure how to overcome that just now 22/1/2015
+#   problems in choosing material radius and inner dia of the pipe
 ################################################################
 
 ############## Beginning of the User Input ###########################
@@ -642,14 +646,14 @@ point2=(50.0, 10.0)
 normal=(0.0, 0.0, 1.0)
 boundary_face_number = 2 # The index of the faces are starting from 0, so essentially the 3rd face
 fixed_face_number = 0
-mat_prop_1 = (1200, 0.3)    # Youngs modulus , poisson ratio
+mat_prop_1 = (120000, 0.3)    # Youngs modulus , poisson ratio
 mat_prop_2 = (1500, 0.15)   # Youngs modulus , poisson ratio
 
 ratio_one = 0.5            # These two need some more explanation or writing
 ratio_two = 0.45            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
 
 stress_plot_way = 0.5*0.5 + 0.45*0.5
-Load = -5000
+Load = -500
 
 
 
