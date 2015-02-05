@@ -365,12 +365,20 @@ def create_steps():
         predefinedFields=ON, connectors=ON, adaptiveMeshConstraints=OFF)
     session.viewports['Viewport: 1'].assemblyDisplay.setValues(step=step_name)
 
+def get_key(item):
+    return item.pointOn[0][0]
+
 def get_face_boundary(facenumber, top=TRUE):
 
     hor_list = list()
     a = get_model().rootAssembly
     edges = a.instances['Part-1-1'].edges
-    e_index_list = a.instances['Part-1-1'].faces[facenumber].getEdges()
+
+    face_list = a.instances['Part-1-1'].faces
+
+    sorted_list = sorted(face_list, key=get_key)
+
+    e_index_list = sorted_list[facenumber].getEdges()
 
     for i in e_index_list :
         e = edges[i]
@@ -609,8 +617,8 @@ fixed_face_number = 0
 mat_prop_1 = (1200, 0.3)    # Youngs modulus , poisson ratio
 mat_prop_2 = (1500, 0.15)   # Youngs modulus , poisson ratio
 
-ratio_one = 0.3            # These two need some more explanation or writing
-ratio_two = 0.1            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
+ratio_one = 0.5            # These two need some more explanation or writing
+ratio_two = 0.45            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
 
 
 
