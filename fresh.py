@@ -432,7 +432,7 @@ def create_and_run_jobs(
                         mat_prop_2,
                         ratio_one,
                         ratio_second,
-                        mesh_size = 1.2,
+                        mesh_size = 0.2,
                         option = FALSE
                         ):
 
@@ -595,7 +595,12 @@ def print_output(
     pt2 = (pp2[0], pp2[1], 0)
     session.Path(name=path_name, type=POINT_LIST, expression=(pt1, pt2))
 
-    xyp = session.XYPlot('XYPlot-1')
+    xyplot_len = len(session.xyPlots)
+    plot_name = 'XYPlot-'+ str(xyplot_len+1)
+    #xyp = session.XYPlot(plotname)
+    xy_dataName = 'XYData-'+ str(xyplot_len+1)
+
+    xyp = session.XYPlot(plot_name)
 
     chartName = xyp.charts.keys()[0]
     chart = xyp.charts[chartName]
@@ -608,7 +613,7 @@ def print_output(
     session.viewports[job_name].setValues(displayedObject=xyp)
 
     pth = session.paths[path_name]
-    session.XYDataFromPath(name='XYData-1', path=pth, includeIntersections=True,
+    session.XYDataFromPath(name=xy_dataName, path=pth, includeIntersections=True,
             projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
             projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
 
