@@ -125,6 +125,18 @@ def check_horizontal_membership(root_assembly, edge):
 
     return ee
 
+def check_vertical_membership(root_assembly, edge):
+
+    vv = edge.getVertices()
+    point1 = root_assembly.vertices[vv[0]]
+    point2 = root_assembly.vertices[vv[1]]
+
+    if ((point1.pointOn[0][0]) == (point2.pointOn[0][0])):
+        ee = edge
+    else :
+        ee = None
+
+    return ee
 
 
 def bifurcate(point1, point2, ratio = 0.5):
@@ -368,6 +380,46 @@ def create_steps():
 def get_key(item):
     return item.pointOn[0][0]
 
+def get_v_face_boundary(facenumber, left = TRUE):
+
+    ver_list = list()
+    a = get_model().rootAssembly
+    edges = a.instances['Part-1-1'].edges
+
+    face_list = a.instances['Part-1-1'].faces
+
+    sorted_list = sorted(face_list, key=get_key)
+
+    e_index_list = sorted_list[facenumber].getEdges()
+
+    for i in e_index_list :
+        e = edges[i]
+        hh = check_vertical_membership(a.instances['Part-1-1'], e)
+
+        if hh is None :
+            continue
+        else:
+            ver_list.append(hh)
+
+    if (left == TRUE):
+        side = ver_list[0];
+        for m in ver_list:
+            print "The value of m is ", m.pointOn[0]
+            if (get_x(m) < get_x(side)):
+                side = m
+
+    else :
+        side = ver_list[0];
+        for m in ver_list:
+            if (get_x(m) > get_x(side)):
+                side = m
+
+    #print "The vertices in the hor_list  ", hor_list
+
+    return side
+
+
+
 def get_face_boundary(facenumber, top=TRUE):
 
     hor_list = list()
@@ -433,6 +485,7 @@ def create_and_run_jobs(
                         ratio_one,
                         ratio_second,
                         Load,
+                        pipe_pressure,
                         mesh_size = 0.02,
                         option = FALSE
                         ):
@@ -505,7 +558,7 @@ def create_and_run_jobs(
     create_assembly()
     create_steps()
 
-
+    face_bound_0 = get_v_face_boundary(fixed_face_number, TRUE)
     face_bound_3 = get_face_boundary(boundary_face_number, TRUE)
     face_bound_1 = get_face_boundary(fixed_face_number, FALSE)
 
@@ -524,7 +577,16 @@ def create_and_run_jobs(
             region=region, distributionType=UNIFORM, field='', magnitude=Load,
             amplitude=UNSET)
 
+    print " the value of the vertical face is ", face_bound_0.pointOn[0]
+    region = a.Surface(side1Edges=edge_List.findAt((face_bound_0.pointOn[0],)), name='Surf-2')
+
+    mm.Pressure(name='Load-2', createStepName=name,
+            region=region, distributionType=UNIFORM, field='', magnitude=pipe_pressure,
+            amplitude=UNSET)
+
+
     region = a.Set(edges=edge_List.findAt((face_bound_1.pointOn[0],)), name='Set-1')
+
 
     mm.DisplacementBC(name='BC-1', createStepName=name,
         region=region, u1=0.0, u2=0.0, ur3=0.0, amplitude=UNSET, fixed=OFF,
@@ -637,6 +699,7 @@ def print_output(
 #   This seems to be a very quirky part of the tool but I am not
 #   sure how to overcome that just now 22/1/2015
 #   problems in choosing material radius and inner dia of the pipe
+# Make all of the material variables as a data structure and pass
 ################################################################
 
 ############## Beginning of the User Input ###########################
@@ -648,6 +711,8 @@ boundary_face_number = 2 # The index of the faces are starting from 0, so essent
 fixed_face_number = 0
 mat_prop_1 = (120000, 0.3)    # Youngs modulus , poisson ratio
 mat_prop_2 = (1500, 0.15)   # Youngs modulus , poisson ratio
+
+pipe_pressure = 3
 
 ratio_one = 0.5            # These two need some more explanation or writing
 ratio_two = 0.498            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
@@ -677,7 +742,8 @@ job = create_and_run_jobs(session,
                     mat_prop_2,
                     ratio_one,
                     ratio_two,
-                    Load)
+                    Load,
+                    pipe_pressure)
 
 
 print_output(job, point1, point2, stress_plot_way, session)
