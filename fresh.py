@@ -621,6 +621,33 @@ def create_and_run_jobs(
 
     return mdb.jobs[job_name]
 
+def generate_path(job,
+                  point1,
+                  point2,
+                  session
+                ):
+
+    path_list = session.viewports.keys()
+    path_list_len = len(path_list)
+    path_name = 'Path-' + str(path_list_len)
+
+    div_point_one = point1
+    div_point_one_prime = (point2[0], point1[1], 0)
+
+    div_point_two = point2
+    div_point_two_prime = (point1[0], point2[1], 0)
+
+    pp1 = bifurcate(div_point_one ,  div_point_one_prime, ratio_one)
+    pp2 = bifurcate(div_point_two, div_point_two_prime, ratio_one)
+
+    print "The generated points for the paths are", pp1, pp2
+
+    pt1 = (pp1[0], pp1[1], 0)
+    pt2 = (pp2[0], pp2[1], 0)
+    path = session.Path(name=path_name, type=POINT_LIST, expression=(pt1, pt2))
+
+    #print "The path is given as", path
+    return path
 
 def print_output(
                 job,
@@ -636,38 +663,49 @@ def print_output(
     viewport_list_len = len(viewport_list)
     job_name = 'Viewport: ' + str(viewport_list_len)
 
-    path_list = session.viewports.keys()
-    path_list_len = len(path_list)
-    path_name = 'Path-' + str(path_list_len)
-
-    print "The path name is ", path_name
 
     o1 = session.openOdb(name=output_path)
     session.viewports[job_name].setValues(displayedObject=o1)
 
-
-    div_point_one = point1
-    div_point_one_prime = (point2[0], point1[1], 0)
-
-    div_point_two = point2
-    div_point_two_prime = (point1[0], point2[1], 0)
-
-    pp1 = bifurcate(div_point_one ,  div_point_one_prime, ratio_one)
-    pp2 = bifurcate(div_point_two, div_point_two_prime, ratio_one)
-
-    print "The generated points for the paths are", pp1, pp2
-
-    pt1 = (pp1[0], pp1[1], 0)
-    pt2 = (pp2[0], pp2[1], 0)
-    session.Path(name=path_name, type=POINT_LIST, expression=(pt1, pt2))
+    pth = generate_path(job, point1, point2, session)
 
     xyplot_len = len(session.xyPlots)
     plot_name = 'XYPlot-'+ str(xyplot_len+1)
-    #xyp = session.XYPlot(plotname)
     xy_dataName = 'XYData-'+ str(xyplot_len+1)
+
+    path_name = pth.name
 
     xyp = session.XYPlot(plot_name)
 
+    print "The path is given as", pth
+    var = ('S', INTEGRATION_POINT, ((COMPONENT, 'S12'),),)
+
+#    session.viewports[job_name].setValues(displayedObject=odb)
+
+    xydata_list_s12 = session.XYDataFromPath(
+                                                name='xyName',
+                                                path=pth,
+                                                includeIntersections=True,
+                                                pathStyle=PATH_POINTS,
+                                                numIntervals=10,
+                                                labelType=TRUE_DISTANCE_Y,
+                                                shape=UNDEFORMED,
+                                                variable=var
+                                            )
+
+
+
+
+#   print "The values of the xydata list is ", xydata_list_s12
+
+    session.writeXYReport(
+            'C:/Temp/sumo.txt',
+            xydata_list_s12
+    )
+
+#    xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
+#    projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
+#    projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_Y)
 
     session.viewports[job_name].odbDisplay.setPrimaryVariable(
     variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
@@ -687,10 +725,10 @@ def print_output(
 
     session.viewports[job_name].setValues(displayedObject=xyp)
 
-    pth = session.paths[path_name]
-    session.XYDataFromPath(name=xy_dataName, path=pth, includeIntersections=True,
-            projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-            projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
+#    pth = session.paths[path_name]
+#    session.XYDataFromPath(name=xy_dataName, path=pth, includeIntersections=True,
+#            projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
+#            projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
 
 ################################################################
 #   it is important to provide the order of the points in the same
