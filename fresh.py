@@ -681,9 +681,12 @@ def print_output(
     path_name = pth.name
     xyp = session.XYPlot(plot_name)
 
-    var = ('S', INTEGRATION_POINT, ((COMPONENT, 'S12'),),)
+    stress_comp = {'S11', 'S12', 'S22', 'S33'}
 
-    xydata_list_s12 = session.XYDataFromPath(
+    for ss in stress_comp :
+        var = ('S', INTEGRATION_POINT, ((COMPONENT, ss),),)
+
+        xydata_list_stress = session.XYDataFromPath(
                                                 name='xyName',
                                                 path=pth,
                                                 includeIntersections=True,
@@ -694,17 +697,17 @@ def print_output(
                                                 variable=var
                                             )
 
-    xx1 = xydata_list_s12/Load
+        xx1 = xydata_list_stress/Load
 
-    session.writeXYReport(
-            'C:/Temp/sumo.txt',
-            xydata_list_s12
-    )
+        #session.writeXYReport(
+        #     'C:/Temp/sumo.txt',
+        #        xydata_list_s12
+        #)
 
-    session.writeXYReport(
-            'C:/Temp/sumo_1.txt',
+        session.writeXYReport(
+            'C:/Temp/' + ss + '.txt',
             xx1
-    )
+        )
 
     session.viewports[job_name].odbDisplay.setPrimaryVariable(
         variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
@@ -720,7 +723,7 @@ def print_output(
 
     session.viewports[job_name].setValues(displayedObject=xyp)
 
-    return xydata_list_s12
+#    return xydata_list_stress
 
 ################################################################
 #   it is important to provide the order of the points in the same
@@ -809,7 +812,7 @@ job = create_and_run_jobs(session,
                     pipe_pressure)
 
 
-aa = print_output(job, point1, point2, stress_plot_way, session, Load)
+print_output(job, point1, point2, stress_plot_way, session, Load)
 
 
 
