@@ -646,14 +646,20 @@ def generate_path(job,
     pt2 = (pp2[0], pp2[1], 0)
     path = session.Path(name=path_name, type=POINT_LIST, expression=(pt1, pt2))
 
-    #print "The path is given as", path
     return path
+
+def normalize_with_stress( list_ll, applied_stress ):
+
+    #print "The list is ",list_ll
+    F = list(map (lambda x: (float(x[0])/applied_stress, x[1]), list_ll))
+    return F
 
 def print_output(
                 job,
                 point1,
                 point2,
                 stress_plot_way,
+                Load=1,
                 session
                 ):
 
@@ -671,16 +677,11 @@ def print_output(
 
     xyplot_len = len(session.xyPlots)
     plot_name = 'XYPlot-'+ str(xyplot_len+1)
-    xy_dataName = 'XYData-'+ str(xyplot_len+1)
 
     path_name = pth.name
-
     xyp = session.XYPlot(plot_name)
 
-    print "The path is given as", pth
     var = ('S', INTEGRATION_POINT, ((COMPONENT, 'S12'),),)
-
-#    session.viewports[job_name].setValues(displayedObject=odb)
 
     xydata_list_s12 = session.XYDataFromPath(
                                                 name='xyName',
@@ -693,42 +694,33 @@ def print_output(
                                                 variable=var
                                             )
 
-
-
-
-#   print "The values of the xydata list is ", xydata_list_s12
+    xx1 = xydata_list_s12/Load
 
     session.writeXYReport(
             'C:/Temp/sumo.txt',
             xydata_list_s12
     )
 
-#    xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
-#    projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-#    projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_Y)
+    session.writeXYReport(
+            'C:/Temp/sumo_1.txt',
+            xx1
+    )
 
     session.viewports[job_name].odbDisplay.setPrimaryVariable(
-    variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
-    'S12'))
+        variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
+        'S12')
+    )
 
     chartName = xyp.charts.keys()[0]
     chart = xyp.charts[chartName]
     pth = session.paths[path_name]
 
-    xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
-            projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-            projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
-
-    c1 = session.Curve(xyData=xy1)
+    c1 = session.Curve(xyData=xx1)
     chart.setValues(curvesToPlot=(c1, ), )
-
 
     session.viewports[job_name].setValues(displayedObject=xyp)
 
-#    pth = session.paths[path_name]
-#    session.XYDataFromPath(name=xy_dataName, path=pth, includeIntersections=True,
-#            projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-#            projectionTolerance=0, shape=UNDEFORMED, labelType=TRUE_DISTANCE)
+    return xydata_list_s12
 
 ################################################################
 #   it is important to provide the order of the points in the same
@@ -784,53 +776,8 @@ job = create_and_run_jobs(session,
                     pipe_pressure)
 
 
-print_output(job, point1, point2, stress_plot_way, session)
+aa = print_output(job, point1, point2, stress_plot_way, Load, session)
 
-
-def ss():
-    inputfile='D:\Ranjith\My_work\ForSidhanth\ForKumar\E-Variation\E_'+str(h[i])+'.odb'
-    o1 = session.openOdb(name=inputfile)
-    session.viewports['Viewport: 1'].setValues(displayedObject=o1)
-    session.Path(name='Path-1', type=NODE_LIST, expression=(('PART-1-1', (2, 1, )),
-    ))
-    session.viewports['Viewport: 1'].odbDisplay.setPrimaryVariable(
-    variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
-    'S22'))
-    plotname='XYPlot-1-h_'+str(h[i])
-    xyp = session.XYPlot(plotname)
-    chartName = xyp.charts.keys()[0]
-    chart = xyp.charts[chartName]
-    pth = session.paths['Path-1']
-    xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
-        projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-        projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_X)
-    c1 = session.Curve(xyData=xy1)
-    chart.setValues(curvesToPlot=(c1, ), )
-    session.viewports['Viewport: 1'].setValues(displayedObject=xyp)
-    pth = session.paths['Path-1']
-    session.XYDataFromPath(name='XYData-1', path=pth, includeIntersections=True,
-        projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-        projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_X)
-    session.viewports['Viewport: 1'].odbDisplay.setPrimaryVariable(
-        variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(COMPONENT,
-        'S12'))
-    xyp = session.xyPlots[plotname]
-    chartName = xyp.charts.keys()[0]
-    chart = xyp.charts[chartName]
-    pth = session.paths['Path-1']
-    xy1 = xyPlot.XYDataFromPath(path=pth, includeIntersections=True,
-        projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-        projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_X)
-    c1 = session.Curve(xyData=xy1)
-    chart.setValues(curvesToPlot=(c1, ), )
-    pth = session.paths['Path-1']
-    session.XYDataFromPath(name='XYData-2', path=pth, includeIntersections=True,
-        projectOntoMesh=False, pathStyle=PATH_POINTS, numIntervals=10,
-        projectionTolerance=0, shape=DEFORMED, labelType=TRUE_DISTANCE_X)
-    x0 = session.xyDataObjects['XYData-1']
-    x1 = session.xyDataObjects['XYData-2']
-    outputfile='D:\Ranjith\My_work\ForSidhanth\ForKumar\E-Variation\XYDATA-'+str(h[i])+'.txt'
-    session.writeXYReport(fileName=outputfile, xyData=(x0, x1))
 
 
 
