@@ -734,10 +734,37 @@ def print_output(
 
 ############## Beginning of the User Input ###########################
 
-print " ###############################################################################################"
-print "          WELCOME    TO  THE  SCRIPT                                                            "
-print " Give the dimensions in metres for the geometries and use SI units for other physical quantities"
+print " ###############################################################################################    "
+print "          WELCOME    TO  THE  SCRIPT                                                                "
+print " Give the dimensions in metres for the geometries and use SI units for other physical quantities    "
+print "                                                                                                    "
+print " The default values of the parameters are given as below                                            "
+print "                                                                                                    "
+print "     2 AxiSymmetric Pipes joined by adhesives                                                       "
+print "     The whole system has inner radius 0.5 m, outer radius 2 metres                                 "
+print "     The length of the system is 10 metres                                                          "
+print "     Length of the adhesive is 0.002 m                                                              "
+print "                                                                                                    "
+print "     The outer radius of the inner pipe is 1 m                                                      "
+print "                                                                                                    "
+print "         The value of the left top most inner pipe point is point1=(0.5, 20.0)                      "
+print "         The value of the right bottom most of the outer pipe is point2=(2.0, 10.0)                 "
+print "                                                                                                    "
+print "     The outer pipe is being sheared and has face number boundary_face_number = 2                   " # The index of the faces are starting from 0, so essentially the 3rd face
+print "     The inner pipe is being fixed, fixed _face_number = 0                                          "
+print "                                                                                                    "
+print " The material properties of the two pipes is mat_prop_1 = (120000, 0.3)    # Youngs modulus , poisson ratio"
+print " The material property of the adhesive is mat_prop_2 = (1500, 0.15)   # Youngs modulus , poisson ratio "
+print " The pressure on the inner pipe from the flow of fluid is pipe_pressure = 3 "
+print "                                                                                                     "
+print " Give the dimension of the inner and outer pipe in terms of the ratio of the total thickness         "
+print " For example ratio_one = 0.5, ratio_two = 0.498 , means inner pipe is 0.5 times the thickness of the system "# These two need some more explanation or writing
+print " The place u want to plot the stress again as a ratio of the total thickness stress_plot_way = ratio_one*0.5 + ratio_two*0.5"
+print " The load to which the outer pipe is subjected to Load = -50                                     "
+
 print "################################################################################################"
+
+# These are the default values
 
 
 point1=(0.5, 20.0)
