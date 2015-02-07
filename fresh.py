@@ -404,7 +404,7 @@ def get_v_face_boundary(facenumber, left = TRUE):
     if (left == TRUE):
         side = ver_list[0];
         for m in ver_list:
-            print "The value of m is ", m.pointOn[0]
+           # print "The value of m is ", m.pointOn[0]
             if (get_x(m) < get_x(side)):
                 side = m
 
@@ -445,7 +445,7 @@ def get_face_boundary(facenumber, top=TRUE):
     if (top == TRUE):
         side = hor_list[0];
         for m in hor_list:
-            print "The value of m is ", m.pointOn[0]
+            # print "The value of m is ", m.pointOn[0]
             if (get_y(m) < get_y(side)):
                 side = m
 
@@ -577,7 +577,7 @@ def create_and_run_jobs(
             region=region, distributionType=UNIFORM, field='', magnitude=Load,
             amplitude=UNSET)
 
-    print " the value of the vertical face is ", face_bound_0.pointOn[0]
+    #print " the value of the vertical face is ", face_bound_0.pointOn[0]
     region = a.Surface(side1Edges=edge_List.findAt((face_bound_0.pointOn[0],)), name='Surf-2')
 
     mm.Pressure(name='Load-2', createStepName=name,
@@ -640,7 +640,7 @@ def generate_path(job,
     pp1 = bifurcate(div_point_one ,  div_point_one_prime, ratio_one)
     pp2 = bifurcate(div_point_two, div_point_two_prime, ratio_one)
 
-    print "The generated points for the paths are", pp1, pp2
+    #print "The generated points for the paths are", pp1, pp2
 
     pt1 = (pp1[0], pp1[1], 0)
     pt2 = (pp2[0], pp2[1], 0)
@@ -659,8 +659,8 @@ def print_output(
                 point1,
                 point2,
                 stress_plot_way,
-                Load=1,
-                session
+                session,
+                Load=1
                 ):
 
     output_path = 'C:/Temp/' + job.name + '.odb'
@@ -734,6 +734,12 @@ def print_output(
 
 ############## Beginning of the User Input ###########################
 
+print " ###############################################################################################"
+print "          WELCOME    TO  THE  SCRIPT                                                            "
+print " Give the dimensions in metres for the geometries and use SI units for other physical quantities"
+print "################################################################################################"
+
+
 point1=(0.5, 20.0)
 point2=(2.0, 10.0)
 normal=(0.0, 0.0, 1.0)
@@ -748,7 +754,7 @@ ratio_one = 0.5            # These two need some more explanation or writing
 ratio_two = 0.498            # ( This needs to be understood as something happening as (1-0.8)*(1 - 0.3)
 
 stress_plot_way = ratio_one*0.5 + ratio_two*0.5
-Load = -5
+Load = -50
 
 
 
@@ -776,7 +782,7 @@ job = create_and_run_jobs(session,
                     pipe_pressure)
 
 
-aa = print_output(job, point1, point2, stress_plot_way, Load, session)
+aa = print_output(job, point1, point2, stress_plot_way, session, Load)
 
 
 
